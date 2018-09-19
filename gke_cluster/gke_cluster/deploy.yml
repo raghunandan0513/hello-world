@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    run: cicddemo
+  name: cicddemo
+spec:
+  replicas: REPLICA_COUNT
+  selector:
+    matchLabels:
+      run: cicddemo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: cicddemo
+    spec:
+      imagePullSecrets:
+      - name: regsecret # https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+      containers:
+      - env:
+        image: IMAGE_PATH
+#        image: biarca/4REPLICA_COUNTq-portal:dev-v5
+        name: cicddemo
+        ports:
+        - containerPort: 7002
+          name: cicddemo-http
+#        imagePullPolicy: Always
+#        readinessProbe:
+#          tcpSocket:
+#            port: 7002
+#          initialDelaySeconds: 5
+#          periodSeconds: 10
+#        livenessProbe:
+#          tcpSocket:
+#            port: 7002
+#          initialDelaySeconds: 180
+#          periodSeconds: 30
+        resources: {}
+status: {}

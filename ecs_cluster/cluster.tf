@@ -1,0 +1,68 @@
+# Configure the AWS Provider
+provider "aws" {
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
+  region     = "${var.project_region}"
+}
+
+# Simply specify the family to find the latest ACTIVE revision in that family.
+data "aws_ecs_task_definition" "task" {
+  task_definition = "${aws_ecs_task_definition.task.family}"
+}
+
+resource "aws_ecs_cluster" "main" {
+    name = "${var.cluster_name}"
+}
+
+resource "aws_launch_configuration" "ecs" {
+  #name_prefix   = "launch-config-"
+  name = "${aws_ecs_cluster.main.name}"
+  image_id = "${lookup(var.image_id, var.project_region)}"
+  instance_type = "${var.instance_type}"
+  security_groups = ["${var.security_group_id}"]
+  #security_groups = ["${split(",", var.security_group_id)}"]
+  associate_public_ip_address = true
+  lifecycle {
+    create_before_destroy = true
+  }
+  user_data                   = <<EOF
+                                #!/bin/bash
+                                echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+                                EOF
+
+}
+
+resource "aws_autoscaling_group" "ecs-cluster" {
+  #availability_zones        = ["${split(",", var.availability_zones)}"]
+  availability_zones        = ["${var.availability_zones}"]
+  name = "${var.autoscaling_group_name}"
+  min_size = "${var.min_size}"
+  max_size = "${var.max_size}"
+  desired_capacity = "${var.desired_capacity}"
+  #vpc_zone_identifier = ["${split(",", var.vpc_zone_identifier)}"]
+  vpc_zone_identifier = ["${var.vpc_zone_identifier}"]
+  health_check_type = "EC2"
+  launch_configuration = "${aws_launch_configuration.ecs.name}"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_ecs_task_definition" "task" {
+  family = "biarca"
+  container_definitions = "${file("container.json")}"
+  cpu = 500
+  memory = 500
+}
+
+resource "aws_ecs_service" "service" {
+  name          = "svc-cicd"
+  cluster       = "${aws_ecs_cluster.main.id}"
+  desired_count = 1
+
+
+  # Track the latest ACTIVE revision
+  task_definition = "${aws_ecs_task_definition.task.family}:${max("${aws_ecs_task_definition.task.revision}", "${data.aws_ecs_task_definition.task.revision}")}"
+  # task_definition = "${aws_ecs_task_definition.task.arn}"
+
+}
