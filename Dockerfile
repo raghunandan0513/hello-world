@@ -1,9 +1,16 @@
-#FROM frolvlad/alpine-oraclejdk8:slim
-FROM maven:3.5.2-jdk-8-alpine
-VOLUME /tmp
+FROM alpine/git
+WORKDIR /app
+RUN git clone https://github.com/raghunandan0513/hello-world.git
+
+FROM maven:3.5-jdk-8-alpine
+WORKDIR /app
+COPY --from=0 /app/hello-world /app 
+RUN mvn package 
+
+FROM openjdk:8-jre-alpine
+WORKDIR /app
 RUN ls -la
-RUN mvn clean package
-ADD target/hellow-world-0.0.1.jar hellow-world.jar
-RUN sh -c 'touch /hellow-world.jar'
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hellow-world.jar"]
-#test
+COPY --from=1 /app/target/hellow-world-0.0.1.jar /app 
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c"]
+CMD ["java -jar hellow-world-0.0.1.jar"] 
