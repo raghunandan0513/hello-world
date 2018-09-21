@@ -1,6 +1,6 @@
 FROM frolvlad/alpine-oraclejdk8:slim
 VOLUME /tmp
-RUN sudo apt-get install maven
+RUN apt-get install maven
 RUN mvn clean package
 ADD target/hellow-world-0.0.1.jar hellow-world.jar
 RUN sh -c 'touch /hellow-world.jar'
